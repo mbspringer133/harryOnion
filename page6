@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Phaser - Making your first game, part 9</title>
+    <script type="text/javascript" src="phaser.min.js"></script>
+    <style type="text/css">
+        body {
+        int WdX = g.getWdX() ;
+        int HdX = g.getHdX() ;
+
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+
+<script type="text/javascript">
+
+ var w = Math.max(document.documentElement.clientWidth, window.innerWidth || 0); 
+ var h = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
+//var w =  displayMetrics.widthPixels  ;
+//var h =  displayMetrics.heightPixels ;
+
+var game = new Phaser.Game(w, h, Phaser.AUTO, '', { preload: preload, create: create, update: update });
+
+function preload() {
+
+    game.load.image('sky'   , 'sky.png');
+    game.load.image('ground', 'HORIZ_400.png');
+    game.load.image('platform', 'platform.png');
+    game.load.image('star'  , 'star.png');
+    game.load.spritesheet('dude', 'dude3.png', 32, 48);
+
+}
+
+var player;
+var platforms;
+var cursors;
+
+
+var tLeft  = 0 ;
+var tRight =0  ;
+
+
+
+var stars;
+var score = 0;
+var scoreText;
+
+function create() {
+
+
+
+
+
+
+
+
+
+
+
+
+
+    //  By default Phaser only starts 2 pointers (enough for 2 fingers at once)
+
+    //  addPointer tells Phaser to add another pointer to Input, so here we are basically saying "allow up to 6 pointers + the mouse"
+
+    //  Note: on iOS as soon as you use 6 fingers you'll active the minimise app gesture - and there's nothing we can do to stop that, sorry
+
+    game.input.addPointer();
+    game.input.addPointer();
+    game.input.addPointer();
+    game.input.addPointer();
+
+
+
+
+
+
+
+
+
+
+
+
+    //  We're going to be using physics, so enable the Arcade Physics system
+    game.physics.startSystem(Phaser.Physics.ARCADE);
+
+    //  A simple background for our game
+    game.add.sprite(0, 0, 'sky');
+
+    //  The platforms group contains the ground and the 2 ledges we can jump on
+    platforms = game.add.group();
+
+    //  We will enable physics for any object that is created in this group
+    platforms.enableBody = true;
+
+    // Here we create the ground.
+    var ground = platforms.create(0, 290, 'ground');
+
+    //  Scale it to fit the width of the game (the original sprite is 400x32 in size)
+    ground.scale.setTo(2, 2);
+
+    //  This stops it from falling away when you jump on it
+    ground.body.immovable = true;
+
+
+
+    //  Now let's create two ledges
+    var ledge = platforms.create(300, 100, 'platform');
+    ledge.body.immovable = true;
+
+
+
+    //  Now let's create two ledges
+    var ledge = platforms.create(100, 75, 'platform');
+    ledge.body.immovable = true;
+
+
+
+    ledge = platforms.create( 50 , 200, 'platform');
+    ledge.body.immovable = true;
+
+    // The player and its settings
+    player = game.add.sprite(32, 50, 'dude');
+
+    //  We need to enable physics on the player
+    game.physics.arcade.enable(player);
+
+
+//=========================================================//
+
+
+        player.pivot.x = 200;
+
+
+//=========================================================//
+
+    //  Player physics properties. Give the little guy a slight bounce.
+    player.body.bounce.y = .8;
+    player.body.gravity.y = 300;
+    player.body.collideWorldBounds = true;
+
+    //  Our two animations, walking left and right.
+    player.animations.add('left', [0, 1, 2, 3], 10, true);
+    player.animations.add('right', [5, 6, 7, 8], 10, true);
+
+    //  Finally some stars to collect
+    stars = game.add.group();
+
+    //  We will enable physics for any star that is created in this group
+    stars.enableBody = true;
+
+    //  Here we'll create 12 of them evenly spaced apart
+    for (var i = 0; i < 12; i++)
+    {
+        //  Create a star inside of the 'stars' group
+        var star = stars.create(i * 70, 0, 'star');
+
+        //  Let gravity do its thing
+        star.body.gravity.y = 300;
+
+        //  This just gives each star a slightly random bounce value
+        star.body.bounce.y = 0.7 + Math.random() * 0.2;
+    }
+
+    //  The score
+    scoreText = game.add.text(16, 16, 'score: 0', { fontSize: '32px', fill: '#000' });
+
+    //  Our controls.
+    cursors = game.input.keyboard.createCursorKeys();
+
+}
+
+
+
+function render() {
+
+    //  Just renders out the pointer data when you touch the canvas
+    game.debug.pointer(game.input.mousePointer);
+    game.debug.pointer(game.input.pointer1);
+    game.debug.pointer(game.input.pointer2);
+    game.debug.pointer(game.input.pointer3);
+    game.debug.pointer(game.input.pointer4);
+    game.debug.pointer(game.input.pointer5);
+    game.debug.pointer(game.input.pointer6);
+
+}
+
+
+
+   function onSwipe()
+   {  return (Phaser.Point.distance(game.input.activePointer.position,
+        game.input.activePointer.positionDown) > 50 &&
+        game.input.activePointer.duration > 10 &&
+        game.input.activePointer.duration < 250);
+   }
+
+
+
+
+
+
+
+
+function update() {
+
+//This is inside your update function
+
+
+//===============================================================================//
+//     Mon 30 Jan 2017 03:50:37 AM EST                                           //
+//                   The onSwipe() function gives us the jumping up and down.    //
+//                   The first line subtracts 350 from the sprites depth on      //
+//                   the y axis. As the use of one finger causes the sprite      //
+//                   to walk left this is corrected for in the next line so      //
+//                   that the sprite can jump (closer to) straight up and down   //
+//===============================================================================//
+
+
+                if ( onSwipe() )
+                {      player.body.velocity.y = -350;
+                   //  Move to the right
+                       player.body.velocity.x = 600;
+                 }
+
+
+
+
+
+
+
+
+
+
+
+           //             player.rotation += 0.01;
+
+
+
+    //  Collide the player and the stars with the platforms
+    game.physics.arcade.collide(player, platforms);
+    game.physics.arcade.collide(stars, platforms);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    //  Checks to see if the player overlaps with any of the stars, if he does call the collectStar function
+    game.physics.arcade.overlap(player, stars, collectStar, null, this);
+
+    //  Reset the players velocity (movement)
+    player.body.velocity.x = 0;
+
+    if (this.input.pointer1.isDown &&  this.input.pointer2.isUp)
+
+                            {
+       //  Move to the left
+        player.body.velocity.x = -150;
+
+        player.animations.play('left');
+
+
+    }
+    else if (this.input.pointer2.isDown  &&  this.input.pointer1.isDown)
+    {
+        //  Move to the right
+        player.body.velocity.x = 150;
+
+        player.animations.play('right');
+    }
+    else
+    {
+        //  Stand still
+        player.animations.stop();
+
+        player.frame = 4;
+    }
+
+    //  Allow the player to jump if they are touching the ground.
+    if ( this.input.pointer1.isTap )
+    {
+
+            player.body.velocity.y = -350;
+    }
+
+}
+
+function collectStar (player, star) {
+
+    // Removes the star from the screen
+    star.kill();
+
+    //  Add and update the score
+    score += 10;
+    scoreText.text = 'Score: ' + score;
+
+}
+
+</script>
+
+</body>
+</html>
